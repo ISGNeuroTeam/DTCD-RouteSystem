@@ -16,6 +16,9 @@ export class RouteSystem extends SystemPlugin {
   #interactionSystem;
   #appGUISystem;
   #routes = routes;
+  #currentRoute = {};
+  #authSystem;
+
   /**
    * @constructor
    * @param {String} guid guid of system instance
@@ -26,6 +29,7 @@ export class RouteSystem extends SystemPlugin {
     this.#logSystem = new LogSystemAdapter('0.5.0', this.#guid, 'RouteSystem');
     this.#interactionSystem = new InteractionSystemAdapter('0.4.0');
     this.#appGUISystem = new AppGUISystemAdapter('0.1.0');
+    this.#authSystem = this.getSystem('AuthSystem', '0.1.0');
 
     this.#routes.forEach(route => {
       route.parser = parse(route.path);
@@ -49,9 +53,11 @@ export class RouteSystem extends SystemPlugin {
 
   init() {
     this.navigate(window.location.pathname);
+
     window.onpopstate = async () => {
       const route = this.#getRoute(window.location.pathname);
       if (route) {
+        this.#currentRoute = route;
         const { data: guiConfig } = await this.#interactionSystem.GETRequest(
           `/pages/${route.name}`
         );
@@ -68,6 +74,10 @@ export class RouteSystem extends SystemPlugin {
    */
   get guid() {
     return this.#guid;
+  }
+
+  get route() {
+    return this.#currentRoute;
   }
 
   #getRoute(path) {
@@ -98,6 +108,9 @@ export class RouteSystem extends SystemPlugin {
 
     const route = this.#getRoute(path);
     if (route) {
+      if (route?.meta?.requiresAuth && !this.#authSystem.isLoggedIn) return this.navigate('/login');
+      if (route === this.#currentRoute) return;
+      this.#currentRoute = route;
       const { data: guiConfig } = await this.#interactionSystem.GETRequest(`/pages/${route.name}`);
       if (guiConfig === 'error') {
         this.#logSystem.error(`Page '${route.name} is not found!`);
