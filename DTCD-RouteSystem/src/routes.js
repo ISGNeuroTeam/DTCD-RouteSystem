@@ -5,7 +5,7 @@ export default [
     title: 'Авторизация',
   },
   {
-    name: 'workspaces',
+    name: 'homepage',
     path: '/workspaces',
     title: 'Домашняя страница',
     meta: {
