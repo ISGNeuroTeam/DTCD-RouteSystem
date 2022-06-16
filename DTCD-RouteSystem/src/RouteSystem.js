@@ -114,18 +114,22 @@ export class RouteSystem extends SystemPlugin {
     if (route) {
       if (route?.meta?.requiresAuth && !this.#authSystem.isLoggedIn) return this.navigate('/login');
       if (route === this.currentRoute) return;
-      const { data: guiConfig } = await this.#interactionSystem.GETRequest(
-        `/mock_server/v1/page/${route.name}`
-      );
-      this.currentRoute = route;
-      if (guiConfig === 'error') {
-        this.#logSystem.error(`Page '${route.name} is not found!`);
+      try {
+        const { data: guiConfig } = await this.#interactionSystem.GETRequest(
+          `/mock_server/v1/page/${route.name}`
+        );
+        this.currentRoute = route;
+        if (guiConfig === 'error') {
+          this.#logSystem.error(`Page '${route.name} is not found!`);
+          return;
+        }
+        window.history.pushState(this.#getPathParams(path), path, window.location.origin + path);
+        this.#appGUISystem.applyPageConfig(guiConfig.content);
         return;
+      } catch (eror) {
+        this.#appGUISystem.instance.goTo404();
       }
-      window.history.pushState(this.#getPathParams(path), path, window.location.origin + path);
-      this.#appGUISystem.applyPageConfig(guiConfig.content);
-      return;
     }
-    this.navigate('/404');
+    this.#appGUISystem.instance.goTo404();
   }
 }
