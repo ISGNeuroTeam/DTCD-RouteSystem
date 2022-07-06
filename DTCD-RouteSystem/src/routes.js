@@ -19,6 +19,7 @@ export default [
     meta: {
       requiresAuth: true,
     },
+    uniqueUrlParams: ['ws-tab-id'],
   },
   {
     name: 'profile',

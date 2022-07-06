@@ -118,12 +118,22 @@ export class RouteSystem extends SystemPlugin {
         const { data: guiConfig } = await this.#interactionSystem.GETRequest(
           `/mock_server/v1/page/${route.name}`
         );
+
         this.currentRoute = route;
+        
         if (guiConfig === 'error') {
           this.#logSystem.error(`Page '${route.name} is not found!`);
           return;
         }
-        window.history.pushState(this.#getPathParams(path), path, window.location.origin + path);
+
+        const strUrlParams = this.#deleteUniqueUrlParams(route.name);
+
+        window.history.pushState(
+          this.#getPathParams(path),
+          path,
+          window.location.origin + path + (strUrlParams ? '?' + strUrlParams : '')
+        );
+
         this.#appGUISystem.applyPageConfig(guiConfig.content);
         return;
       } catch (eror) {
@@ -131,5 +141,23 @@ export class RouteSystem extends SystemPlugin {
       }
     }
     this.#appGUISystem.instance.goTo404();
+  }
+
+  #deleteUniqueUrlParams(nameTargetRoute) {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    for (let param of urlParams) {
+      const paramKey = param[0];
+
+      this.#routes.forEach((route) => {
+        if (route.name == nameTargetRoute) return;
+
+        if (route.uniqueUrlParams?.indexOf(paramKey) >= 0) {
+          urlParams.delete(paramKey);
+        }
+      });
+    }
+    
+    return urlParams.toString();
   }
 }
