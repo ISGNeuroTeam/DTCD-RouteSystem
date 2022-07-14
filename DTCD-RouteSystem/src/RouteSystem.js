@@ -59,7 +59,7 @@ export class RouteSystem extends SystemPlugin {
       if (route) {
         this.currentRoute = route;
         const { data: guiConfig } = await this.#interactionSystem.GETRequest(
-          `/mock_server/v1/page/${route.name}`
+          `/dtcd_utils/v1/page/${route.name}`
         );
         if (guiConfig === 'error') return;
         this.#appGUISystem.applyPageConfig(guiConfig.content);
@@ -116,11 +116,11 @@ export class RouteSystem extends SystemPlugin {
       if (route === this.currentRoute) return;
       try {
         const { data: guiConfig } = await this.#interactionSystem.GETRequest(
-          `/mock_server/v1/page/${route.name}`
+          `/dtcd_utils/v1/page/${route.name}`
         );
 
         this.currentRoute = route;
-        
+
         if (guiConfig === 'error') {
           this.#logSystem.error(`Page '${route.name} is not found!`);
           return;
@@ -145,11 +145,11 @@ export class RouteSystem extends SystemPlugin {
 
   #deleteUniqueUrlParams(nameTargetRoute) {
     const urlParams = new URLSearchParams(window.location.search);
-    
+
     for (let param of urlParams) {
       const paramKey = param[0];
 
-      this.#routes.forEach((route) => {
+      this.#routes.forEach(route => {
         if (route.name == nameTargetRoute) return;
 
         if (route.uniqueUrlParams?.indexOf(paramKey) >= 0) {
@@ -157,7 +157,7 @@ export class RouteSystem extends SystemPlugin {
         }
       });
     }
-    
+
     return urlParams.toString();
   }
 }
