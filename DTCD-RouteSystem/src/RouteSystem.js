@@ -106,14 +106,17 @@ export class RouteSystem extends SystemPlugin {
     return this.#exec(path, route.parser);
   }
 
-  async navigate(path) {
+  async navigate(path, isRedirect, redirectData) {
     //TODO : Add redirect functionality to router
     if (path === '/') path = '/workspaces';
 
     const route = this.#getRoute(path);
+
     if (route) {
       if (route?.meta?.requiresAuth && !this.#authSystem.isLoggedIn) return this.navigate('/login');
       if (route === this.currentRoute) return;
+
+
       try {
         const { data: guiConfig } = await this.#interactionSystem.GETRequest(
           `/dtcd_utils/v1/page/${route.name}`
@@ -127,12 +130,20 @@ export class RouteSystem extends SystemPlugin {
         }
 
         const strUrlParams = this.#deleteUniqueUrlParams(route.name);
+        if (!isRedirect) {
+          window.history.pushState(
+            this.#getPathParams(path),
+            path,
+            window.location.origin + path + (strUrlParams ? '?' + strUrlParams : '')
+          );
+        } else {
+          window.history.replaceState(
+            redirectData,
+            '',
+            path
+          );
+        }
 
-        window.history.pushState(
-          this.#getPathParams(path),
-          path,
-          window.location.origin + path + (strUrlParams ? '?' + strUrlParams : '')
-        );
 
         this.#appGUISystem.applyPageConfig(guiConfig.content);
         return;
