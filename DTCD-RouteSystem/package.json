@@ -1,6 +1,6 @@
 {
   "name": "route-system",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "RouteSystem for DTCD application",
   "main": "./src/RouteSystem.js",
   "scripts": {
