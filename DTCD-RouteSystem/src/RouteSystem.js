@@ -114,10 +114,14 @@ export class RouteSystem extends SystemPlugin {
 
     if (route) {
       if (route?.meta?.requiresAuth && !this.#authSystem.isLoggedIn) return this.navigate('/login');
-      if (route === this.currentRoute) return;
+      if (route === this.currentRoute
+        && this.#deleteUniqueUrlParams(this.currentRoute.name)
+        === new URLSearchParams(`?${path.split('?')[1]}`).toString()
+      ) return;
 
 
       try {
+        if (!isRedirect) {
         const { data: guiConfig } = await this.#interactionSystem.GETRequest(
           `/dtcd_utils/v1/page/${route.name}`
         );
@@ -130,12 +134,13 @@ export class RouteSystem extends SystemPlugin {
         }
 
         const strUrlParams = this.#deleteUniqueUrlParams(route.name);
-        if (!isRedirect) {
+
           window.history.pushState(
             this.#getPathParams(path),
             path,
             window.location.origin + path + (strUrlParams ? '?' + strUrlParams : '')
           );
+          this.#appGUISystem.applyPageConfig(guiConfig.content);
         } else {
           window.history.replaceState(
             redirectData,
@@ -145,7 +150,6 @@ export class RouteSystem extends SystemPlugin {
         }
 
 
-        this.#appGUISystem.applyPageConfig(guiConfig.content);
         return;
       } catch (eror) {
         this.#appGUISystem.instance.goTo404();
