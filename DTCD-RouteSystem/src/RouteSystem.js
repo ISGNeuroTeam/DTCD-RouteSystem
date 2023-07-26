@@ -1,9 +1,4 @@
-import {
-  SystemPlugin,
-  LogSystemAdapter,
-  InteractionSystemAdapter,
-  AppGUISystemAdapter,
-} from './../../DTCD-SDK';
+import { SystemPlugin, LogSystemAdapter, InteractionSystemAdapter, AppGUISystemAdapter } from './../../DTCD-SDK';
 
 import { parse, inject } from 'regexparam';
 import { version } from '../package.json';
@@ -52,15 +47,14 @@ export class RouteSystem extends SystemPlugin {
   }
 
   init() {
-    this.navigate(window.location.pathname);
+    const { pathname, search, hash } = location;
+    this.navigate(pathname + search + hash);
 
     window.onpopstate = async () => {
-      const route = this.#getRoute(window.location.pathname);
+      const route = this.#getRoute(location.pathname);
       if (route) {
         this.currentRoute = route;
-        const { data: guiConfig } = await this.#interactionSystem.GETRequest(
-          `/dtcd_utils/v1/page/${route.name}`
-        );
+        const { data: guiConfig } = await this.#interactionSystem.GETRequest(`/dtcd_utils/v1/page/${route.name}`);
         if (guiConfig === 'error') return;
         this.#appGUISystem.applyPageConfig(guiConfig.content);
         return;
@@ -86,8 +80,9 @@ export class RouteSystem extends SystemPlugin {
 
   #getRoute(path) {
     return this.#routes.find(route => {
-      let routePattern = parse(route.path);
-      return routePattern.pattern.test(path);
+      let pathPattern = parse(route.path);
+      let aliasPattern = parse(route.alias || route.path);
+      return pathPattern.pattern.test(path) || aliasPattern.pattern.test(path);
     });
   }
 
@@ -106,69 +101,60 @@ export class RouteSystem extends SystemPlugin {
     return this.#exec(path, route.parser);
   }
 
-  async navigate(path, isRedirect, redirectData) {
-    //TODO : Add redirect functionality to router
-    if (path === '/') path = '/workspaces';
+  #parsePath(path) {
+    let hash = '';
+    let query = '';
 
-    const route = this.#getRoute(path);
+    const hashIndex = path.indexOf('#');
+    if (hashIndex >= 0) {
+      hash = path.slice(hashIndex);
+      path = path.slice(0, hashIndex);
+    }
+
+    const queryIndex = path.indexOf('?');
+    if (queryIndex >= 0) {
+      query = path.slice(queryIndex + 1);
+      path = path.slice(0, queryIndex);
+    }
+
+    return {
+      path,
+      query,
+      hash,
+    };
+  }
+
+  async navigate(path, replace) {
+    const parsedPath = this.#parsePath(path || '');
+    const route = this.#getRoute(parsedPath.path);
 
     if (route) {
       if (route?.meta?.requiresAuth && !this.#authSystem.isLoggedIn) return this.navigate('/login');
-      if (route === this.currentRoute) return;
-
-
       try {
-        const { data: guiConfig } = await this.#interactionSystem.GETRequest(
-          `/dtcd_utils/v1/page/${route.name}`
-        );
-
-        this.currentRoute = route;
-
-        if (guiConfig === 'error') {
-          this.#logSystem.error(`Page '${route.name} is not found!`);
-          return;
-        }
-
-        const strUrlParams = this.#deleteUniqueUrlParams(route.name);
-        if (!isRedirect) {
-          window.history.pushState(
-            this.#getPathParams(path),
-            path,
-            window.location.origin + path + (strUrlParams ? '?' + strUrlParams : '')
-          );
+        if (replace) {
+          history.replaceState(this.#getPathParams(parsedPath.path), '', path);
         } else {
-          window.history.replaceState(
-            redirectData,
-            '',
-            path
-          );
+          const { data: guiConfig } = await this.#interactionSystem.GETRequest(`/dtcd_utils/v1/page/${route.name}`);
+
+          if (guiConfig === 'error') {
+            this.#logSystem.error(`Page '${route.name} is not found!`);
+            return;
+          }
+
+          history.pushState(this.#getPathParams(parsedPath.path), '', path);
+
+          this.#appGUISystem.applyPageConfig(guiConfig.content);
         }
-
-
-        this.#appGUISystem.applyPageConfig(guiConfig.content);
+        this.currentRoute = route;
         return;
-      } catch (eror) {
+      } catch (error) {
         this.#appGUISystem.instance.goTo404();
       }
     }
     this.#appGUISystem.instance.goTo404();
   }
 
-  #deleteUniqueUrlParams(nameTargetRoute) {
-    const urlParams = new URLSearchParams(window.location.search);
-
-    for (let param of urlParams) {
-      const paramKey = param[0];
-
-      this.#routes.forEach(route => {
-        if (route.name == nameTargetRoute) return;
-
-        if (route.uniqueUrlParams?.indexOf(paramKey) >= 0) {
-          urlParams.delete(paramKey);
-        }
-      });
-    }
-
-    return urlParams.toString();
+  replace(path) {
+    this.navigate(path, true);
   }
 }

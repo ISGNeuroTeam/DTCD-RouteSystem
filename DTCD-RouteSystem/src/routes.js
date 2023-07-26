@@ -6,11 +6,12 @@ export default [
   },
   {
     name: 'homepage',
-    path: '/workspaces',
+    path: '/',
     title: 'Домашняя страница',
     meta: {
       requiresAuth: true,
     },
+    alias: '/workspaces',
   },
   {
     name: 'workspace',
@@ -19,7 +20,6 @@ export default [
     meta: {
       requiresAuth: true,
     },
-    uniqueUrlParams: ['ws-tab-id'],
   },
   {
     name: 'profile',
