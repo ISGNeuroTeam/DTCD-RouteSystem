@@ -129,7 +129,10 @@ export class RouteSystem extends SystemPlugin {
     const route = this.#getRoute(parsedPath.path);
 
     if (route) {
+      await this.#logSystem.uploadLogs();
+
       if (route?.meta?.requiresAuth && !this.#authSystem.isLoggedIn) return this.navigate('/login');
+
       try {
         if (replace) {
           history.replaceState(this.#getPathParams(parsedPath.path), '', path);
