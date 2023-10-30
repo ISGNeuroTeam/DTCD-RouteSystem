@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - upload LogSystem logs when navigate
 
+### Removed
+
+- login page route
+
 ## [0.5.0]
 
 ### Added

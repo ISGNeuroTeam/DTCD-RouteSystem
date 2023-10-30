@@ -12,7 +12,6 @@ export class RouteSystem extends SystemPlugin {
   #appGUISystem;
   #routes = routes;
   currentRoute = {};
-  #authSystem;
 
   /**
    * @constructor
@@ -24,7 +23,6 @@ export class RouteSystem extends SystemPlugin {
     this.#logSystem = new LogSystemAdapter('0.5.0', this.#guid, 'RouteSystem');
     this.#interactionSystem = new InteractionSystemAdapter('0.4.0');
     this.#appGUISystem = new AppGUISystemAdapter('0.1.0');
-    this.#authSystem = this.getSystem('AuthSystem', '0.1.0');
 
     this.#routes.forEach(route => {
       route.parser = parse(route.path);
@@ -42,7 +40,7 @@ export class RouteSystem extends SystemPlugin {
       name: 'RouteSystem',
       version,
       withDependencies: false,
-      priority: 0.9,
+      priority: 0.5,
     };
   }
 
@@ -130,8 +128,6 @@ export class RouteSystem extends SystemPlugin {
 
     if (route) {
       await this.#logSystem.uploadLogs();
-
-      if (route?.meta?.requiresAuth && !this.#authSystem.isLoggedIn) return this.navigate('/login');
 
       try {
         if (replace) {
